@@ -2,25 +2,15 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/hooks/useAuth"
+import { doc, setDoc, getDoc } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import {
-  LayoutGrid,
-  Link2,
-  MapPin,
-  Briefcase,
-  GraduationCap,
-  Wrench,
-  Award,
-  FolderGit2,
-  Globe,
-  Heart,
-} from "lucide-react"
-import { SocialLinksForm } from "@/components/social-links-form"
-import { AddressForm } from "@/components/form-sections/address-form"
+import { LayoutGrid, Briefcase, GraduationCap, Wrench, Award, FolderGit2, Globe, Heart } from "lucide-react"
 import { WorkExperienceForm } from "@/components/form-sections/work-experience-form"
 import { EducationForm } from "@/components/form-sections/education-form"
 import { SkillsForm } from "@/components/form-sections/skills-form"
@@ -30,6 +20,8 @@ import { InternshipsForm } from "@/components/form-sections/internships-form"
 import { AchievementsForm } from "@/components/form-sections/achievements-form"
 import { LanguageForm } from "@/components/form-sections/language-form"
 import { ReferencesForm } from "@/components/form-sections/references-form"
+import { SocialLinksForm } from "@/components/form-sections/social-links-form"
+import { AddressForm } from "@/components/form-sections/address-form"
 
 interface ResumeData {
   personalInfo: {
@@ -153,29 +145,28 @@ const initialResumeData: ResumeData = {
 
 export default function ResumeEditorPage() {
   const router = useRouter()
+  const { user, logout } = useAuth()
   const [resumeData, setResumeData] = useState<ResumeData>(initialResumeData)
 
   useEffect(() => {
-    const storedData = localStorage.getItem("resumeData")
-    if (storedData) {
-      try {
-        const parsedData = JSON.parse(storedData)
-        setResumeData((prevData) => ({
-          ...prevData,
-          ...parsedData,
-        }))
-      } catch (error) {
-        console.error("Error parsing stored data:", error)
+    if (!user) {
+      router.push("/login")
+    } else {
+      fetchResumeData()
+    }
+  }, [user, router])
+
+  const fetchResumeData = async () => {
+    if (user) {
+      const docRef = doc(db, "resumes", user.uid)
+      const docSnap = await getDoc(docRef)
+      if (docSnap.exists()) {
+        setResumeData(docSnap.data() as ResumeData)
       }
     }
-  }, [])
-
-  const handleSave = () => {
-    localStorage.setItem("resumeData", JSON.stringify(resumeData))
   }
 
   const handlePreview = () => {
-    handleSave()
     router.push("/resume-preview")
   }
 
@@ -187,6 +178,17 @@ export default function ResumeEditorPage() {
     }))
   }
 
+  const handleSave = async () => {
+    if (user) {
+      try {
+        await setDoc(doc(db, "resumes", user.uid), resumeData)
+        console.log("Resume data saved successfully")
+      } catch (error) {
+        console.error("Error saving resume data:", error)
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Left Sidebar */}
@@ -195,12 +197,6 @@ export default function ResumeEditorPage() {
         <nav className="flex flex-col items-center space-y-6">
           <Button variant="ghost" size="icon" className="text-gray-500 hover:text-[#7C3AED]">
             <LayoutGrid className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="text-gray-500 hover:text-[#7C3AED]">
-            <Link2 className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="text-gray-500 hover:text-[#7C3AED]">
-            <MapPin className="h-5 w-5" />
           </Button>
           <Button variant="ghost" size="icon" className="text-gray-500 hover:text-[#7C3AED]">
             <Briefcase className="h-5 w-5" />
@@ -232,20 +228,18 @@ export default function ResumeEditorPage() {
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold text-[#2D2B6B]">Let&apos;s Edit Your Resume</h1>
             <div className="flex gap-4">
-              <Button
-                variant="outline"
-                className="border-[#7C3AED] text-[#7C3AED] hover:bg-[#7C3AED]/5"
-                onClick={handleSave}
-              >
-                Save
+              <Button className="bg-[#7C3AED] hover:bg-[#6D28D9]" onClick={handleSave}>
+                Save Changes
               </Button>
-              <Button className="bg-[#7C3AED] hover:bg-[#6D28D9]">Download</Button>
               <Button
                 variant="outline"
                 className="border-[#7C3AED] text-[#7C3AED] hover:bg-[#7C3AED]/5"
                 onClick={handlePreview}
               >
                 Preview
+              </Button>
+              <Button variant="outline" className="border-red-500 text-red-500 hover:bg-red-50" onClick={logout}>
+                Logout
               </Button>
             </div>
           </div>
@@ -258,18 +252,6 @@ export default function ResumeEditorPage() {
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#7C3AED] data-[state=active]:bg-transparent text-gray-600 data-[state=active]:text-[#7C3AED]"
               >
                 Personal
-              </TabsTrigger>
-              <TabsTrigger
-                value="social"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#7C3AED] data-[state=active]:bg-transparent text-gray-600 data-[state=active]:text-[#7C3AED]"
-              >
-                Social Links
-              </TabsTrigger>
-              <TabsTrigger
-                value="address"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#7C3AED] data-[state=active]:bg-transparent text-gray-600 data-[state=active]:text-[#7C3AED]"
-              >
-                Address
               </TabsTrigger>
               <TabsTrigger
                 value="work"
@@ -324,6 +306,18 @@ export default function ResumeEditorPage() {
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#7C3AED] data-[state=active]:bg-transparent text-gray-600 data-[state=active]:text-[#7C3AED]"
               >
                 References
+              </TabsTrigger>
+              <TabsTrigger
+                value="social-links"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#7C3AED] data-[state=active]:bg-transparent text-gray-600 data-[state=active]:text-[#7C3AED]"
+              >
+                Social Links
+              </TabsTrigger>
+              <TabsTrigger
+                value="address"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#7C3AED] data-[state=active]:bg-transparent text-gray-600 data-[state=active]:text-[#7C3AED]"
+              >
+                Address
               </TabsTrigger>
             </TabsList>
 
@@ -387,29 +381,14 @@ export default function ResumeEditorPage() {
                     className="border-[#7C3AED] focus-visible:ring-[#7C3AED]"
                   />
                 </div>
-                <div className="col-span-2 flex justify-end">
-                  <Button className="bg-[#7C3AED] hover:bg-[#6D28D9]" onClick={handleSave}>
-                    Update
-                  </Button>
-                </div>
+              </div>
+              <div className="mt-6">
+                <Button onClick={handleSave} className="bg-[#7C3AED] hover:bg-[#6D28D9]">
+                  Save Changes
+                </Button>
               </div>
             </TabsContent>
 
-            <TabsContent value="social">
-              <SocialLinksForm
-                links={resumeData.socialLinks}
-                onUpdate={(newLinks) => {
-                  console.log("Updating social links:", newLinks)
-                  setResumeData((prev) => ({ ...prev, socialLinks: newLinks }))
-                }}
-              />
-            </TabsContent>
-            <TabsContent value="address">
-              <AddressForm
-                data={resumeData.address}
-                onUpdate={(newData) => setResumeData((prev) => ({ ...prev, address: newData }))}
-              />
-            </TabsContent>
             <TabsContent value="work">
               <WorkExperienceForm
                 data={resumeData.workExperience}
@@ -464,10 +443,21 @@ export default function ResumeEditorPage() {
                 onUpdate={(newData) => setResumeData((prev) => ({ ...prev, references: newData }))}
               />
             </TabsContent>
+            <TabsContent value="social-links">
+              <SocialLinksForm
+                links={resumeData.socialLinks}
+                onUpdate={(newData) => setResumeData((prev) => ({ ...prev, socialLinks: newData }))}
+              />
+            </TabsContent>
+            <TabsContent value="address">
+              <AddressForm
+                data={resumeData.address}
+                onUpdate={(newData) => setResumeData((prev) => ({ ...prev, address: newData }))}
+              />
+            </TabsContent>
           </Tabs>
         </div>
       </div>
-      console.log('Current resumeData:', resumeData);
     </div>
   )
 }

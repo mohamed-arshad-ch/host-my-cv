@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import type React from "react" // Added import for React
+import { Button } from "@/components/ui/button"
+import type React from "react"
 
 interface AddressData {
   street: string
@@ -11,14 +12,27 @@ interface AddressData {
 }
 
 interface AddressFormProps {
-  data: AddressData
+  data?: AddressData
   onUpdate: (data: AddressData) => void
 }
 
-export function AddressForm({ data, onUpdate }: AddressFormProps) {
+const defaultAddressData: AddressData = {
+  street: "",
+  city: "",
+  state: "",
+  country: "",
+  postalCode: "",
+}
+
+export function AddressForm({ data = defaultAddressData, onUpdate }: AddressFormProps) {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     onUpdate({ ...data, [name]: value })
+  }
+
+  const handleSave = () => {
+    // Here you would typically send the data to your backend
+    console.log("Saving address data:", data)
   }
 
   return (
@@ -29,7 +43,7 @@ export function AddressForm({ data, onUpdate }: AddressFormProps) {
           <Input
             id="street"
             name="street"
-            value={data.street}
+            value={data?.street ?? ""}
             onChange={handleInputChange}
             className="border-[#7C3AED] focus-visible:ring-[#7C3AED]"
           />
@@ -39,7 +53,7 @@ export function AddressForm({ data, onUpdate }: AddressFormProps) {
           <Input
             id="city"
             name="city"
-            value={data.city}
+            value={data?.city ?? ""}
             onChange={handleInputChange}
             className="border-[#7C3AED] focus-visible:ring-[#7C3AED]"
           />
@@ -49,7 +63,7 @@ export function AddressForm({ data, onUpdate }: AddressFormProps) {
           <Input
             id="state"
             name="state"
-            value={data.state}
+            value={data?.state ?? ""}
             onChange={handleInputChange}
             className="border-[#7C3AED] focus-visible:ring-[#7C3AED]"
           />
@@ -59,7 +73,7 @@ export function AddressForm({ data, onUpdate }: AddressFormProps) {
           <Input
             id="postalCode"
             name="postalCode"
-            value={data.postalCode}
+            value={data?.postalCode ?? ""}
             onChange={handleInputChange}
             className="border-[#7C3AED] focus-visible:ring-[#7C3AED]"
           />
@@ -69,12 +83,15 @@ export function AddressForm({ data, onUpdate }: AddressFormProps) {
           <Input
             id="country"
             name="country"
-            value={data.country}
+            value={data?.country ?? ""}
             onChange={handleInputChange}
             className="border-[#7C3AED] focus-visible:ring-[#7C3AED]"
           />
         </div>
       </div>
+      <Button onClick={handleSave} className="bg-[#7C3AED] hover:bg-[#6D28D9]">
+        Save Changes
+      </Button>
     </form>
   )
 }
