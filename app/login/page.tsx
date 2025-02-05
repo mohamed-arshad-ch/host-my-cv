@@ -3,25 +3,24 @@
 import { useEffect, useState } from "react"
 import { useAuth } from "@/hooks/useAuth"
 import { LoginForm } from "@/components/login-form"
+import { useRouter } from "next/navigation"
+
 
 export default function LoginPage() {
-  const { login, checkAuthorizedDomain } = useAuth()
-  const [isAuthorized, setIsAuthorized] = useState(true)
+  const { user,login } = useAuth()
+ 
 
-  useEffect(() => {
-    checkAuthorizedDomain().then(setIsAuthorized)
-  }, [checkAuthorizedDomain])
+const router = useRouter()
 
-  if (!isAuthorized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white p-4">
-        <div className="w-full max-w-md space-y-8 text-center">
-          <h1 className="text-4xl font-bold text-gray-900">Unauthorized Domain</h1>
-          <p className="text-gray-600">This domain is not authorized for sign-in. Please contact the administrator.</p>
-        </div>
-      </div>
-    )
+useEffect(() => {
+  if (!user) {
+    router.push("/login")
+  } else {
+    router.push("/onboarding")
   }
+}, [user,router])
+ 
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white p-4">

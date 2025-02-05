@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/useAuth"
 import { doc, setDoc, getDoc } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { auth, db } from "@/lib/firebase"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -144,26 +144,43 @@ const initialResumeData: ResumeData = {
 }
 
 export default function ResumeEditorPage() {
+ 
+  const { user, logout,login } = useAuth()
   const router = useRouter()
-  const { user, logout } = useAuth()
   const [resumeData, setResumeData] = useState<ResumeData>(initialResumeData)
 
+  
   useEffect(() => {
-    if (!user) {
-      router.push("/login")
-    } else {
-      fetchResumeData()
-    }
-  }, [user, router])
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+          console.log(user);
+          fetchResumeData(user)
+      } else {
+        router.push('/login')
+      }
+    })
 
-  const fetchResumeData = async () => {
-    if (user) {
+    return () => unsubscribe()
+  }, [router])
+
+  
+  // useEffect(() => {
+   
+  //   if (!user) {
+  //     router.push("/login")
+  //   } else {
+  //     fetchResumeData()
+  //   }
+  // }, [user,router])
+
+  const fetchResumeData = async (user:any) => {
+   
       const docRef = doc(db, "resumes", user.uid)
       const docSnap = await getDoc(docRef)
       if (docSnap.exists()) {
         setResumeData(docSnap.data() as ResumeData)
       }
-    }
+    
   }
 
   const handlePreview = () => {
@@ -179,14 +196,14 @@ export default function ResumeEditorPage() {
   }
 
   const handleSave = async () => {
-    if (user) {
+    
       try {
         await setDoc(doc(db, "resumes", user.uid), resumeData)
         console.log("Resume data saved successfully")
       } catch (error) {
         console.error("Error saving resume data:", error)
       }
-    }
+    
   }
 
   return (

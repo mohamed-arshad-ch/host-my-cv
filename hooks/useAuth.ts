@@ -1,50 +1,44 @@
 import { useState, useEffect } from "react"
 import { auth, db } from "@/lib/firebase"
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "firebase/auth"
-import { doc, setDoc, getDoc } from "firebase/firestore"
+
 import { useRouter } from "next/navigation"
 
 export function useAuth() {
   const [user, setUser] = useState<any>(null)
   const router = useRouter()
-
+const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = auth.onAuthStateChanged(  (user) => {
+
+      
       if (user) {
-        const userDoc = await getDoc(doc(db, "users", user.uid))
-        if (!userDoc.exists()) {
-          await setDoc(doc(db, "users", user.uid), {
-            email: user.email,
-            name: user.displayName,
-          })
-        }
         setUser(user)
       } else {
-        setUser(null)
+        router.push("/login")
       }
     })
 
-    checkAuthorizedDomain().then((isAuthorized) => {
-      if (!isAuthorized) {
-        alert("This domain is not authorized for sign-in. Please contact the administrator.")
-      }
-    })
+   
 
     return () => unsubscribe()
-  }, [])
+  }, [user,router])
 
   const login = async () => {
     try {
       const provider = new GoogleAuthProvider()
       await signInWithPopup(auth, provider)
-      router.push("/resume-editor")
-    } catch (error: any) {
-      console.error("Error signing in with Google", error)
-      if (error.code === "auth/unauthorized-domain") {
-        alert("This domain is not authorized for sign-in. Please contact the administrator.")
+    } catch (err: any) {
+      console.error(err)
+      if (err.code === 'auth/unauthorized-domain') {
+        setError('This domain is not authorized for authentication. Please check your Firebase configuration.')
       } else {
-        alert("An error occurred during sign-in. Please try again.")
+        setError('Failed to sign in. Please try again.')
       }
+    } finally {
+      setLoading(false)
+      router.push("/onboarding")
     }
   }
 
@@ -59,7 +53,7 @@ export function useAuth() {
 
   const checkAuthorizedDomain = async () => {
     try {
-      await fetch(`https://${auth.app.options.authDomain}/__/auth/iframe`)
+    
       return true
     } catch (error) {
       console.error("Domain not authorized:", error)
